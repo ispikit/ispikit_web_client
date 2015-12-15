@@ -1,4 +1,4 @@
-WebSocket/Web Audio API for Ispikit - version 1.1
+WebSocket/Web Audio API for Ispikit - version 1.2
 =================================================
 
 This document describes the API and usage of the client-side module of the client-server version of the Ispikit pronunciation technology. Making use of WebSockets, the Web Audio API and WebRTC, pronunciation assessment applications can run directly in the web browser without requiring any browser plug-in. The content of this SDK is:
@@ -41,7 +41,7 @@ These steps are all implemented in the sample application, we describe them here
 
 ## 3.a WebSocket
 
-A WebSocket object must be created with the URL of the Ispikit server (currently for the Ispikit server "ws://108.59.3.115:18875"). The application should assign a callback to `onopen` and `onmessage`. 
+A WebSocket object must be created with the URL of the Ispikit server (currently for the Ispikit server "wss://ilearnkit.com:9002"). The application should assign a callback to `onopen` and `onmessage`.
 
 * `onopen` is called once the connection is established. The app should not try to start recording audio before the WebSocket is connected.
 * `onmessage` is used by the WebSocket to send messages back to the client. They are encoded in JSON format, so a message must first be parsed:
@@ -133,7 +133,7 @@ An application must initialize both a WebSocket and an AudioRecorder. It is not 
 
 ## 4.b Browser support
 
-This SDK is working well on recent versions of Google Chrome and Firefox, on all OSes.
+This SDK is working well on recent versions of Google Chrome and Firefox, on all OSes. Note that on very recent versions of Chrome, the app must be served from a secure origin (https or localhost).
 
 ## 4.c Firefox scoping hack
 
@@ -144,7 +144,3 @@ As you might see in `wsispikit.html`, we use a hack to keep the input media stre
 // Firefox hack https://support.mozilla.org/en-US/questions/984179
 window.firefox_audio_hack = input;
 ```
-
-## 4.d Secure HTTP issue
-
-For now, the WebSocket server does not use "wss" protocol, so it can not be accessed from a web paged served by "https".
