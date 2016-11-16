@@ -1,7 +1,7 @@
-WebSocket/Web Audio API for Ispikit - version 1.2
+WebSocket/Web Audio API for Ispikit - version 1.5
 =================================================
 
-This document describes the API and usage of the client-side module of the client-server version of the Ispikit pronunciation technology. Making use of WebSockets, the Web Audio API and WebRTC, pronunciation assessment applications can run directly in the web browser without requiring any browser plug-in. The content of this SDK is:
+This document describes the API and usage of the client-side module of the client-server version of the Ispikit speech recognition and pronunciation assessment technology. Making use of WebSockets, the Web Audio API and WebRTC, speech recognition and pronunciation assessment applications can run directly in the web browser without requiring any browser plug-in. The content of this SDK is:
 
 * `audioRecorder.js`: JavaScript implementation of audio recording and interface with WebSocket server.
 * `audioRecorderWorker.js`: Web Worker code used by the AudioRecorder.
@@ -18,8 +18,8 @@ Content:
 # 1. Trying the sample application
 
 * Copy the 3 files (`audioRecorder.js`, `audioRecorderWorker.js`, `wsispikit.html`) into a location served by a web server and open wsispikit.html with Google Chrome or Firefox. Web audio does not work if the page is served from "file://...".
-* Enter a sentence in the input field.
-* Press `Start` and read the sentence.
+* Enter one or a few sentences in the input field. Each sentence should include no punctuation, sentences are comma separated, without extra space (e.g: "sentence one,sentence two,sentence three").
+* Press `Start` and read one of the sentences.
 * While you read, the audio volume is updated.
 * Press `stop`.
 * You should see the result or possibly an error message.
@@ -41,7 +41,7 @@ These steps are all implemented in the sample application, we describe them here
 
 ## 3.a WebSocket
 
-A WebSocket object must be created with the URL of the Ispikit server (currently for the Ispikit server "wss://ilearnkit.com:9002"). The application should assign a callback to `onopen` and `onmessage`.
+A WebSocket object must be created with the URL of the Ispikit server (currently for the Ispikit server "wss://ispikit.com:9999"). The application should assign a callback to `onopen` and `onmessage`.
 
 * `onopen` is called once the connection is established. The app should not try to start recording audio before the WebSocket is connected.
 * `onmessage` is used by the WebSocket to send messages back to the client. They are encoded in JSON format, so a message must first be parsed:
@@ -58,19 +58,19 @@ A WebSocket object must be created with the URL of the Ispikit server (currently
 Following is the content of these messages, after they are parsed (converted from a JSON string to a JavaScript object):
 
 * `message` might contain an analysis result. In this case, it contains 3 fields: `score`, `speed` and `words`, such as `{score: 85, speed: 73, words: "..."}`. `score` is the overall assessment score, between 0 (lowest score) and 100 (highest pronunciation score). `speed` is the measure of speech tempo, measure in phonemes in 10 seconds. A value lower than 80 could be considered slow or not fluent. `words` indicate which words have been recognized and mispronounced, the format is as follows: `words` is a string which includes the recognized words, separated by commas, in the form i-j-k-l where:
-    * i is the index of the sentence being practiced.
+    * i is the index of the recognized sentence among the given set of sentences (first sentence has index 0).
     * j is the index of the word within the sentence, starting from 0.
-    * k and l give information on the pronunciation alternative the user said, which is not useful/usable for now.
+    * k and l can be ignored.
 
     In addition, any word can be followed by a pattern such as MISP-i which means that the ith phoneme was mispronounced. That mispronounced phoneme detection should be used carefully as it is not guaranteed to be accurate. However, it can be implied that a word with at least one mispronounced phoneme is a mispronounced word.
 
-    As an example, say you have the sentence "He speaks English and he likes it", and you get:
+    As an example, say you have provided the sentences "This is a horse,He speaks English and he likes it,I am learning English", and you get:
 
     ```javascript
     result.words="1-0-0-0, 1-1-2-1, 1-2-0-0 MISP-1 MISP-2, 1-4-0-0, 1-5-2-0 MISP-2"
     ```
 
-    It means that the learner did not say the words "and" and "it", and mispronounced the words "English" and "likes".
+    It means that the learner attempted to say the second sentence (sentence index 1), but did not say the words "and" and "it" (word indexes 3 and 6 missing), and mispronounced the words "English" and "likes".
 * `message` might contain an error code. In this case, it looks like `{error: "ERROR_CODE"}`, where ERROR_CODE can be either:
     * `NO_AUDIO`: No audio was received by the server, probably because the time between calls to start and stop was shorter than a buffer length.
     * `INVALID_SENTENCE`: The provided sentence is not valid, for instance it contains words that are not in the dictionary. We'll see below how the sentence is given.
@@ -116,7 +116,7 @@ The file `audioRecorder.js` defines an `AudioRecorder` class that deals with aud
         * `volumeMax`: At the end of a recording, it is set to the highest volume encountered during that recording. It is here mainly because Chrome used to have a bug where on several platforms, the recorded audio is silent. So if  `volumeMax` is 0, users should be warned that their setting has the issue.
         * `audio`: A blob that contains the recorded audio, as a `.wav` file. It can be used for example to upload the recording to a server, for later use, for giving a download link to the user, or setting it in the `src` field of an `audio` tag and have users being able to replay their last recording.
 * Public methods: The audio recorder just has 2 useful public methods, to start and stop recording:
-    * `start(sentence)`: starts recording on the provided sentence.
+    * `start(sentences)`: starts recording on the provided sentences.
     * `stop()`: stops recording.
 
         None of these two methods returns anything, result and errors are given in the previously documented callbacks. For instance, between calls to start and stop, audio recorder callback will be called with the `volume` information, in real time, and after call to stop, audio recorder callback will give the `audio` information with the audio file blob and the WebSocket will receive a message with either the result or an error code.
@@ -133,7 +133,7 @@ An application must initialize both a WebSocket and an AudioRecorder. It is not 
 
 ## 4.b Browser support
 
-This SDK is working well on recent versions of Google Chrome and Firefox, on all OSes. Note that on very recent versions of Chrome, the app must be served from a secure origin (https or localhost).
+This SDK is working well on recent versions of Google Chrome and Firefox, on all OSes. Note that on recent versions of common web browsers, the app must be served from a secure origin (https or localhost).
 
 ## 4.c Firefox scoping hack
 
